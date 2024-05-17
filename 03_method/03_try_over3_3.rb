@@ -5,6 +5,23 @@ TryOver3 = Module.new
 # - `test_` から始まるインスタンスメソッドが実行された場合、このクラスは `run_test` メソッドを実行する
 # - `test_` メソッドがこのクラスに実装されていなくても `test_` から始まるメッセージに応答することができる
 # - TryOver3::A1 には `test_` から始まるインスタンスメソッドが定義されていない
+class TryOver3::A1
+  def run_test
+    nil
+  end
+
+  method_missing(name, *) do
+    if name.to_s.start_with?("test_")
+      run_test
+    else
+      super
+    end
+  end
+
+  def respond_to_missing?(name, *)
+    name.to_s.start_with?("test_")
+  end
+end
 
 
 # Q2
@@ -15,6 +32,20 @@ class TryOver3::A2
   def initialize(name, value)
     instance_variable_set("@#{name}", value)
     self.class.attr_accessor name.to_sym unless respond_to? name.to_sym
+  end
+end
+
+class TryOver3::A2Proxy
+  def initialize(source)
+    @source = source
+  end
+
+  def method_missing(...)
+    @source.send(...)
+  end
+
+  def respond_to_missing?(...)
+    @source.respond_to?(...)
   end
 end
 
@@ -37,6 +68,8 @@ module TryOver3::OriginalAccessor2
           self.class.define_method "#{name}?" do
             @attr == true
           end
+        else
+          mod.remove_method "#{name}?" if respond_to?("#{name}?")
         end
         @attr = value
       end
@@ -51,6 +84,21 @@ end
 # TryOver3::A4::Hoge.run
 # # => "run Hoge"
 # このとき、TryOver3::A4::Hogeという定数は定義されません。
+class TryOver3::A4
+  def self.const_missing(const)
+    if @consts.include?(const)
+      obj = Object.new
+      obj.define_singleton_method :run { "run Hoge" }
+      obj
+    else
+      super
+    end
+  end
+
+  def self.runners=(consts)
+    @consts = consts
+  end
+end
 
 
 # Q5. チャレンジ問題！ 挑戦する方はテストの skip を外して挑戦してみてください。

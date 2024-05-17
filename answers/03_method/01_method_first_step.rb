@@ -30,7 +30,6 @@ end
 #
 class F2
   def add_hi
-    def hi
-    end
+    define_method :hi
   end
 end
